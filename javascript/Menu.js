@@ -5,7 +5,7 @@ MYGAME.screens['menu'] = (function (Game) {
   var timerId = 0;
   var time = 0.0;
   var fadeId = 0;
-  
+
   /* Canvas items */
   var canvas = document.getElementById('menuCanvas');
   var context = canvas.getContext("2d");
