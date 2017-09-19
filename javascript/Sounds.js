@@ -10,20 +10,20 @@ MYGAME.Sound = (function () {
     createjs.Sound.registerPlugins([ createjs.HTMLAudioPlugin]);
     createjs.Sound.alternateExtensions = ["mp3"];
     createjs.Sound.on("fileload", handleLoad);
-    var mySound = createjs.Sound.play("sounds/M-GameBG.ogg");
+    //playSound("GameMusic3.mp3");
   }
   function handleLoad(event) {
     createjs.Sound.play(event.src);
   }
 
-/*
+  /*
   function loadSound () {
     createjs.Sound.registerSound("sounds/Thunder1.ogg", "Thunder");
   }
-  function playSound () {
-    createjs.Sound.play("Thunder");
-  }
   */
+  function playSound (soundName) {
+    createjs.Sound.play("sounds/" + soundName);
+  }
 
   return {
     init: init,

@@ -84,7 +84,6 @@ MYGAME.screens['menu'] = (function (Game) {
   function drawBackground() {
     context.drawImage(bgImage, backgroundX, 0);
     context.drawImage(bgImage, backgroundX + bgImage.width, 0);
-
     context.fillStyle = "rgba(0,0,0,1)";
     context.font = "80px Arial";
     context.fillText("Game Name Goes Here", canvas.width/2 - 400, 100);
