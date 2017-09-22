@@ -19,6 +19,7 @@ MYGAME.screens['gameplay'] = (function (Game, Input) {
   var character;
   var characterBody;
   var player;
+  var jumpSensor;
 
   var canvas = document.getElementById("gameplayCanvas");
   var context = canvas.getContext("2d");
@@ -83,10 +84,18 @@ MYGAME.screens['gameplay'] = (function (Game, Input) {
       }
     });
 
+    jumpSensor = Bodies.rectangle(character.x, character.y, character.width, character.height, {
+      sleepThreshold: 99999999999,
+      isSensor: true,
+      render: {
+        visible: false
+      }
+    });
+
     player = Body.create({ //combine jumpSensor and playerBody
-      parts: [characterBody],
+      parts: [characterBody, jumpSensor],
       inertia: Infinity, //prevents player rotation
-      friction: 0.02,
+      friction: 0.01,
       //frictionStatic: 0.5,
       restitution: 0.3,
       sleepThreshold: Infinity,
@@ -98,6 +107,21 @@ MYGAME.screens['gameplay'] = (function (Game, Input) {
     Body.setVelocity(player, character.spawnVelocity);
     Body.setMass(player, character.mass);
 
+      //determine if player is on the ground
+    Events.on(engine, "collisionStart", function(event) {
+      playerOnGroundCheck(event);
+      playerHeadCheck(event);
+    });
+    Events.on(engine, "collisionActive", function(event) {
+      playerOnGroundCheck(event);
+      playerHeadCheck(event);
+    });
+    Events.on(engine, 'collisionEnd', function(event) {
+      playerOffGroundCheck(event);
+    });
+    Events.on(engine, "beforeUpdate", function(event) {
+      character.numTouching = 0;
+    });
 
     World.add(engine.world, [bottomWall, ball, player]);
     Engine.run(engine);
@@ -162,6 +186,11 @@ MYGAME.screens['gameplay'] = (function (Game, Input) {
       x: 0,
       y: 0
     };
+    this.yOffWhen = {
+      crouch: 22,
+      stand: 49,
+      jump: 70
+    }
     this.x = this.spawnPos.x;
     this.y = this.spawnPos.y;
     this.Sy = this.y; //adds a smoothing effect to vertical only
@@ -175,6 +204,7 @@ MYGAME.screens['gameplay'] = (function (Game, Input) {
     this.angle = 0;
     this.walk_cycle = 0;
     this.stepSize = 0;
+    this.buttonCD_jump = 0; //cooldown for player buttons
     this.move = function() {
       this.x = player.position.x;
       //looking at player body, to ignore the other parts of the player composite
@@ -183,17 +213,74 @@ MYGAME.screens['gameplay'] = (function (Game, Input) {
       this.Vy = player.velocity.y;
     }
     this.keyMove = function() {
-      if ( keys[37] || keys[65]) { // left or a
-        if (player.velocity.x > -this.VxMax) {
-          player.force.x = -this.Fx / game.delta;
+      if (this.onGround) { //on ground **********************
+        if ((keys[32] || keys[38] || keys[87]) && this.buttonCD_jump + 20 < game.cycle) { //jump
+          this.buttonCD_jump = game.cycle; //can't jump until 20 cycles pass
+          Matter.Body.setVelocity(player, { //zero player velocity for consistant jumps
+            x: player.velocity.x,
+            y: 0
+          });
+          player.force.y = this.Fy / game.delta; //jump force / delta so that force is the same on game slowdowns
+        }
+        //horizontal move on ground
+        if (keys[37] || keys[65]) { //left or a
+          if (player.velocity.x > -this.VxMax) {
+            player.force.x = -this.Fx / game.delta;
+          }
+        } else if (keys[39] || keys[68]) { //right or d
+          if (player.velocity.x < this.VxMax) {
+            player.force.x = this.Fx / game.delta;
+          }
+        }
+
+      } else { // in air **********************************
+        //check for short jumps
+        if (this.buttonCD_jump + 60 > game.cycle && //just pressed jump
+          !(keys[32] || keys[38] || keys[87]) && //but not pressing jump key
+          this.Vy < 0) { // and velocity is up
+          Matter.Body.setVelocity(player, { //reduce player velocity every cycle until not true
+            x: player.velocity.x,
+            y: player.velocity.y * 0.94
+          });
+        }
+        if (keys[37] || keys[65]) { // move player   left / a
+          if (player.velocity.x > -this.VxMax + 2) {
+            player.force.x = -this.FxAir / game.delta;
+          }
+        } else if (keys[39] || keys[68]) { //move player  right / d
+          if (player.velocity.x < this.VxMax - 2) {
+            player.force.x = this.FxAir / game.delta;
+          }
         }
       }
-      else if (keys[39] || keys[68]){ // right or d
-        if (player.velocity.x < this.VxMax) {
-          player.force.x = this.Fx / game.delta;
+      //smoothly move height towards height goal ************
+      this.yOff = this.yOff * 0.85 + this.yOffGoal * 0.15
+    };
+    this.enterAir = function() {
+      this.onGround = false;
+      player.frictionAir = 0.0005;
+      if (this.isHeadClear){
+        if (this.crouch) {
+          this.undoCrouch();
         }
-      }
+        this.yOffGoal = this.yOffWhen.jump;
+      };
     }
+    this.enterLand = function() {
+      this.onGround = true;
+      if (this.crouch){
+        if (this.isHeadClear){
+          this.undoCrouch();
+          player.frictionAir = 0.12;
+        } else {
+          this.yOffGoal = this.yOffWhen.crouch;
+          player.frictionAir = 0.5;
+        }
+      } else {
+        this.yOffGoal = this.yOffWhen.stand;
+        player.frictionAir = 0.12;
+      }
+    };
 
     this.draw = function() {
     }
