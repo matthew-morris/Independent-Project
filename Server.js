@@ -1,14 +1,29 @@
-var express = require("express");
-var app     = express();
-var path    = require("path");
+
+var app = require('express')();
+var http = require('http').Server(app);
+var io = require('socket.io')(http);
+var express = require('express');
 
 app.use(express.static(__dirname));
 
-app.get('/',function(req,res){
-  res.sendFile(path.join(__dirname+'/index.html'));
-  //__dirname resolves to the project folder.
+app.get('/', function(req, res){
+  res.sendFile(__dirname + '/index.html');
 });
 
-app.listen(3000);
+io.on('connection', function(socket){
+  console.log('a user connected');
+  socket.on('disconnect', function(){
+    console.log('user disconnected');
+  });
+  socket.on('start game',function(){
+    console.log('user started game');
+  });
+  socket.on('update ball position', function(x, y){
+    console.log(x, y);
+    //Body.setPosition(ball, {x: ball.position.x, y: ball.position.y});
+  });
+});
 
-console.log("Running at Port 3000");
+http.listen(3000, function(){
+  console.log('listening on *:3000');
+});

@@ -26,8 +26,6 @@ MYGAME.Game = (function (screens, sound) {
 		}
 
     showScreen('menu');
-
-
   }
 
   return {

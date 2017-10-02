@@ -19,6 +19,7 @@ MYGAME.screens['gameplay'] = (function (Game, Input) {
   var character;
   var characterBody;
   var player;
+  var players = [];
   var jumpSensor;
 
   var canvas = document.getElementById("gameplayCanvas");
@@ -75,6 +76,34 @@ MYGAME.screens['gameplay'] = (function (Game, Input) {
       }
     });
 
+      //determine if player is on the ground
+    Events.on(engine, "collisionStart", function(event) {
+      playerOnGroundCheck(event);
+      playerHeadCheck(event);
+    });
+    Events.on(engine, "collisionActive", function(event) {
+      playerOnGroundCheck(event);
+      playerHeadCheck(event);
+    });
+    Events.on(engine, 'collisionEnd', function(event) {
+      playerOffGroundCheck(event);
+    });
+    Events.on(engine, "beforeUpdate", function(event) {
+      character.numTouching = 0;
+    });
+
+    World.add(engine.world, [bottomWall, ball]);
+
+    Engine.run(engine);
+    Render.run(render);
+
+    open();
+    requestAnimationFrame(gameLoop); //starts game loop
+
+    document.getElementById('mainMenuButton').addEventListener('click', function() {Render.stop(render); World.clear(engine.world); Engine.clear(engine); Game.showScreen('menu');});
+  }
+
+  function createCharacter() {
     character = new CharacterPrototype();
     characterBody = Bodies.rectangle(character.x, character.y, character.width, character.height, {
       render: {
@@ -107,30 +136,8 @@ MYGAME.screens['gameplay'] = (function (Game, Input) {
     Body.setVelocity(player, character.spawnVelocity);
     Body.setMass(player, character.mass);
 
-      //determine if player is on the ground
-    Events.on(engine, "collisionStart", function(event) {
-      playerOnGroundCheck(event);
-      playerHeadCheck(event);
-    });
-    Events.on(engine, "collisionActive", function(event) {
-      playerOnGroundCheck(event);
-      playerHeadCheck(event);
-    });
-    Events.on(engine, 'collisionEnd', function(event) {
-      playerOffGroundCheck(event);
-    });
-    Events.on(engine, "beforeUpdate", function(event) {
-      character.numTouching = 0;
-    });
-
-    World.add(engine.world, [bottomWall, ball, player]);
-    Engine.run(engine);
-    Render.run(render);
-
-    open();
-    requestAnimationFrame(gameLoop); //starts game loop
-
-    document.getElementById('mainMenuButton').addEventListener('click', function() {Render.stop(render); World.clear(engine.world); Engine.clear(engine); Game.showScreen('menu');});
+    players.push(player);
+    World.add(engine.world, [player]);
   }
 
   function open() {
@@ -179,7 +186,7 @@ MYGAME.screens['gameplay'] = (function (Game, Input) {
     this.crouch = false;
     this.isHeadClear = true;
     this.spawnPos = {
-      x: 675,
+      x: Math.floor(Math.random() * 1000),
       y: 200
     };
     this.spawnVelocity = {
@@ -254,7 +261,7 @@ MYGAME.screens['gameplay'] = (function (Game, Input) {
         }
       }
       //smoothly move height towards height goal ************
-      this.yOff = this.yOff * 0.85 + this.yOffGoal * 0.15
+      this.yOff = this.yOff * 0.85 + this.yOffGoal * 0.15;
     };
     this.enterAir = function() {
       this.onGround = false;
@@ -337,13 +344,18 @@ MYGAME.screens['gameplay'] = (function (Game, Input) {
   function gameLoop() {
     game.timing();
     character.keyMove();
-    //character.move();
+    socket.emit('update ball position', ball.position.x, ball.position.y);
 
     requestAnimationFrame(gameLoop);
   }
 
+  function updateBallPosition(x, y) {
+    Body.setPosition(ball, {x: x, y: y});
+  }
+
   return {
     initialize: initialize,
-    run: run
+    run: run,
+    createCharacter: createCharacter
   };
 }(MYGAME.Game, MYGAME.Input));

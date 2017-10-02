@@ -1,26 +1,27 @@
-<!DOCTYPE html>
-<html>
-<head>
-	<title></title>
-</head>
-<body onload="init()">
-	<script src="http://code.createjs.com/soundjs-0.6.1.min.js"></script>
 
-	<script>
-		function init() {
-			if (!createjs.Sound.initializeDefaultPlugins()) {return;}
-			var audioPath = "sounds/";
-			var sounds = [
-				{id:"Music", src:"M-GameBG.ogg"},
-				{id:"Thunder", src:"Thunder1.ogg"}
-			];
-			createjs.Sound.alternateExtensions = ["mp3"];
-			createjs.Sound.on("fileload", handleLoad);
-			createjs.Sound.registerSounds(sounds, audioPath);
-		}
-		function handleLoad(event) {
-			createjs.Sound.play(event.src);
-		}
-	</script>
-</body>
+<!doctype html>
+<html>
+  <head>
+    <title>Socket.IO chat</title>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { font: 13px Helvetica, Arial; }
+      form { background: #000; padding: 3px; position: fixed; bottom: 0; width: 100%; }
+      form input { border: 0; padding: 10px; width: 90%; margin-right: .5%; }
+      form button { width: 9%; background: rgb(130, 224, 255); border: none; padding: 10px; }
+      #messages { list-style-type: none; margin: 0; padding: 0; }
+      #messages li { padding: 5px 10px; }
+      #messages li:nth-child(odd) { background: #eee; }
+    </style>
+  </head>
+  <body>
+    <ul id="messages"></ul>
+    <form action="">
+      <input id="m" autocomplete="off" /><button>Send</button>
+    </form>
+		<script src="/socket.io/socket.io.js"></script>
+		<script>
+		  var socket = io();
+		</script>
+  </body>
 </html>
