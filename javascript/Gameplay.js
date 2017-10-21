@@ -92,12 +92,14 @@ MYGAME.screens['gameplay'] = (function (Game, Input) {
       character.numTouching = 0;
     });
 
+    createCharacter();
+
     World.add(engine.world, [bottomWall, ball]);
 
     Engine.run(engine);
     Render.run(render);
 
-    open();
+    //open();
     requestAnimationFrame(gameLoop); //starts game loop
 
     document.getElementById('mainMenuButton').addEventListener('click', function() {Render.stop(render); World.clear(engine.world); Engine.clear(engine); Game.showScreen('menu');});
@@ -344,18 +346,12 @@ MYGAME.screens['gameplay'] = (function (Game, Input) {
   function gameLoop() {
     game.timing();
     character.keyMove();
-    socket.emit('update ball position', ball.position.x, ball.position.y);
 
     requestAnimationFrame(gameLoop);
   }
 
-  function updateBallPosition(x, y) {
-    Body.setPosition(ball, {x: x, y: y});
-  }
-
   return {
     initialize: initialize,
-    run: run,
-    createCharacter: createCharacter
+    run: run
   };
 }(MYGAME.Game, MYGAME.Input));

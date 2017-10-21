@@ -7,7 +7,8 @@ var express = require('express');
 app.use(express.static(__dirname));
 
 app.get('/', function(req, res){
-  res.sendFile(__dirname + '/index.html');
+  //res.sendFile(__dirname + '/index.html');
+  console.log("Hello from server");
 });
 
 io.on('connection', function(socket){
@@ -19,7 +20,7 @@ io.on('connection', function(socket){
     console.log('user started game');
   });
   socket.on('update ball position', function(x, y){
-    console.log(x, y);
+    //console.log(x, y);
     //Body.setPosition(ball, {x: ball.position.x, y: ball.position.y});
   });
 });

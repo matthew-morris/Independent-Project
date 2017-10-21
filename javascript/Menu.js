@@ -145,7 +145,6 @@ MYGAME.screens['menu'] = (function (Game) {
           clearInterval(fadeId);
           time = 0;
           Game.showScreen('gameplay');
-          socket.emit('start game', MYGAME.screens['gameplay'].createCharacter());
       }
   }
 
