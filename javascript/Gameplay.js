@@ -25,7 +25,7 @@ MYGAME.screens['gameplay'] = (function (Game, Input) {
   var canvas = document.getElementById("gameplayCanvas");
   var context = canvas.getContext("2d");
   var backgroundImage = new Image();
-  backgroundImage.src = "images/full-background.png";
+  backgroundImage.src = "images/full-background2.png";
 
   function initialize() {
 
@@ -39,17 +39,18 @@ MYGAME.screens['gameplay'] = (function (Game, Input) {
       canvas: canvas,
       engine: engine,
       options: {
-        width: backgroundImage.width,
-        height: backgroundImage.height,
-        background: "images/full-background.png",
-        wireframes: false
+        width: window.width,
+        height: window.height,
+        wireframes: false,
+        hasBounds: true,
+        //background: backgroundImage.src
       }
     });
 
     bottomWall = Bodies.rectangle(0, canvas.height-105, canvas.width*2, 10,
       { isStatic: true,
         render: {
-          visible: false
+          visible: true
         }
       }
     );
@@ -83,6 +84,11 @@ MYGAME.screens['gameplay'] = (function (Game, Input) {
     createCharacter();
 
     World.add(engine.world, [bottomWall, ball]);
+
+    /*
+    engine.world.bounds.max.x = 1600;
+    engine.world.bounds.max.y = 1000;
+    */
 
     Engine.run(engine);
     Render.run(render);
@@ -166,7 +172,6 @@ MYGAME.screens['gameplay'] = (function (Game, Input) {
   const game = new gamePrototype();
 
   const CharacterPrototype = function() {
-    this.canvas;
     this.width = 80;
     this.height = 110;
     this.texture = "images/PNG/Player/Poses/player_idle.png";
@@ -186,6 +191,12 @@ MYGAME.screens['gameplay'] = (function (Game, Input) {
       this.mouse.x = x;
       this.mouse.y = y;
     }
+
+    this.canvasX = canvas.width/2;
+    this.canvasY = canvas.height/2;
+    this.transX = this.canvasX - this.x;
+    this.transY = this.canvasX - this.x;
+
     this.look = function() {
       //set a max on mouse look
       let mX = this.mouse.x;
@@ -213,16 +224,14 @@ MYGAME.screens['gameplay'] = (function (Game, Input) {
         this.Sy = this.y - canvas.height/2
       }
       this.transY = this.canvasY - this.Sy;
-      //make player head angled towards mouse
-      this.angle = Math.atan2(this.mouse.y - this.canvasY, this.mouse.x - this.canvasX);
 
-      if (this.mouse.x < this.x ) {
+      if (this.mouse.x <0 ) {
         if (this.flipBody == -1) {
           characterBody.render.sprite.texture = "images/PNG/Player/Poses/player_idle_left.png";
           this.flipBody =1;
         }
       }
-      else if (this.mouse.x > this.x) {
+      else if (this.mouse.x > 0) {
         if (this.flipBody == 1) {
           characterBody.render.sprite.texture = "images/PNG/Player/Poses/player_idle.png";
           this.flipBody = -1;
@@ -395,6 +404,7 @@ MYGAME.screens['gameplay'] = (function (Game, Input) {
     };
 
     this.draw = function() {
+      Render.lookAt(render, player, {x: (render.canvas.width-character.width)/2, y: (render.canvas.height-character.height)/2});
     };
   };
 
@@ -468,7 +478,7 @@ MYGAME.screens['gameplay'] = (function (Game, Input) {
 
   window.onmousemove = function(e) {
     if (character != null ) {
-      character.getMousePos(e.clientX, e.clientY);
+      character.getMousePos(e.clientX - (render.bounds.max.x - render.bounds.min.x)+ canvas.width/2, e.clientY - (render.bounds.max.y - render.bounds.min.y) + canvas.height/2);
     }
   };
 
