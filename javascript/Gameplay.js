@@ -47,10 +47,10 @@ MYGAME.screens['gameplay'] = (function (Game, Input) {
       }
     });
 
-    bottomWall = Bodies.rectangle(0, canvas.height-105, canvas.width*2, 10,
+    bottomWall = Bodies.rectangle(0, backgroundImage.height-465, backgroundImage.width, 10,
       { isStatic: true,
         render: {
-          visible: true
+          visible: false
         }
       }
     );
@@ -64,6 +64,17 @@ MYGAME.screens['gameplay'] = (function (Game, Input) {
         }
       }
     });
+
+    var background = Bodies.rectangle(0, canvas.height, backgroundImage.width, backgroundImage.height, {
+      isStatic: true,
+      collisionFilter: {mask: 2},
+      render: {
+        sprite: {
+          texture: backgroundImage.src
+        }
+      }
+    });
+
 
       //determine if player is on the ground
     Events.on(engine, "collisionStart", function(event) {
@@ -81,14 +92,8 @@ MYGAME.screens['gameplay'] = (function (Game, Input) {
       character.numTouching = 0;
     });
 
+    World.add(engine.world, [background, bottomWall, ball]);
     createCharacter();
-
-    World.add(engine.world, [bottomWall, ball]);
-
-    /*
-    engine.world.bounds.max.x = 1600;
-    engine.world.bounds.max.y = 1000;
-    */
 
     Engine.run(engine);
     Render.run(render);
