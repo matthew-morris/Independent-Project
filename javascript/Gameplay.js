@@ -21,17 +21,74 @@ MYGAME.screens['gameplay'] = (function (Game, Input) {
   var player;
   var players = [];
   var jumpSensor;
+  var tiles = new Array();
 
   var canvas = document.getElementById("gameplayCanvas");
   var context = canvas.getContext("2d");
   var backgroundImage = new Image();
   backgroundImage.src = "images/full-background2.png";
+  var grassDirtTile = new Image();
+  grassDirtTile.src = "images/Ardentryst-TilesAndObjects/Ardentryst-grassc1.png";
+  var dirtTile = new Image();
+  dirtTile.src = "images/Ardentryst-TilesAndObjects/Ardentryst-dirtc1.png";
+  var iceTile = new Image();
+  iceTile.src = "images/Ardentryst-TilesAndObjects/Ardentryst-cavejl.png";
+  var stoneTile = new Image();
+  stoneTile.src = "images/Ardentryst-TilesAndObjects/Ardentryst-cstl_ground1.png";
+
+  var mouseX, mouseY;
 
   function initialize() {
 
   }
 
   function run() {
+    tiles[0] = new Array();
+    var tempTile, randomInt;
+    for ( var x = 0; x < 100; x++ ) {
+      tiles[0][x] = Bodies.rectangle((x * 40*1.5)-1980, backgroundImage.height - 445, grassDirtTile.width, grassDirtTile.height,
+      {
+        isStatic: true,
+        render: {
+          visible: true,
+          sprite: {
+            texture: grassDirtTile.src,
+            xScale: 1.5,
+            yScale: 1.5
+          }
+        }
+      });
+      tiles[0][x].time = 0;
+    }
+    for ( var x = 1; x < 50; x++ ) {
+      tiles[x] = new Array();
+      for ( var y = 0; y < 100; y++ ){
+        randomInt = Math.floor(Math.random() * 100);
+        if (randomInt < 90) {
+          tempTile = dirtTile;
+        }
+        else if (randomInt < 99) {
+          tempTile = stoneTile;
+        }
+        else {
+          tempTile = iceTile;
+        }
+        tiles[x][y] = Bodies.rectangle((y * 40*1.5)-1980, backgroundImage.height - 445 + x * 44*1.5, tempTile.width, tempTile.height,
+        {
+          isStatic: true,
+          render: {
+            visible: true,
+            sprite: {
+              texture: tempTile.src,
+              xScale: 1.5,
+              yScale: 1.65
+            }
+          }
+        });
+        tiles[x][y].time = 0;
+      }
+    }
+
     engine = Engine.create();
 
     render = Render.create({
@@ -70,7 +127,9 @@ MYGAME.screens['gameplay'] = (function (Game, Input) {
       collisionFilter: {mask: 2},
       render: {
         sprite: {
-          texture: backgroundImage.src
+          texture: backgroundImage.src,
+          xScale: 1,
+          yScale: 1
         }
       }
     });
@@ -92,8 +151,13 @@ MYGAME.screens['gameplay'] = (function (Game, Input) {
       character.numTouching = 0;
     });
 
-    World.add(engine.world, [background, bottomWall, ball]);
+    World.add(engine.world, [background, ball]);
     createCharacter();
+    for ( var x = 0; x < tiles.length; x++ ) {
+      for ( var y = 0; y < tiles[x].length; y++) {
+        World.add(engine.world, [tiles[x][y]]);
+      }
+    }
 
     Engine.run(engine);
     Render.run(render);
@@ -486,6 +550,22 @@ MYGAME.screens['gameplay'] = (function (Game, Input) {
       character.getMousePos(e.clientX - (render.bounds.max.x - render.bounds.min.x)+ canvas.width/2, e.clientY - (render.bounds.max.y - render.bounds.min.y) + canvas.height/2);
     }
   };
+
+  window.onmousedown = function(e) {
+    mouseX = e.clientX + (render.bounds.min.x);
+    mouseY = e.clientY + (render.bounds.min.y);
+    if (character.mouse.x >= -100 && character.mouse.x <= 100 && character.mouse.y >= -100 && character.mouse.y <= 100) {
+      for ( var x = 0; x < tiles.length; x++ ) {
+        for ( var y = 0; y < tiles[x].length; y++ ) {
+          if ( mouseX >= tiles[x][y].position.x-20 && mouseX <= tiles[x][y].position.x + 45) {
+            if ( mouseY >= tiles[x][y].position.y-30 && mouseY <= tiles[x][y].position.y + 40) {
+              Composite.remove(engine.world, tiles[x][y]);
+            }
+          }
+        }
+      }
+    }
+  }
 
   const keys = [];
   document.body.addEventListener("keyup", function(e) {
