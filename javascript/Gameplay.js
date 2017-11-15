@@ -18,12 +18,16 @@ MYGAME.screens['gameplay'] = (function (Game, Input) {
   var ball;
   var character;
   var characterBody;
+  var tower, towerBody;
   var player;
   var players = [];
   var jumpSensor;
   var tiles = new Array();
 
   var canvas = document.getElementById("gameplayCanvas");
+  var dirtDiv = document.getElementById("dirt");
+  var stoneDiv = document.getElementById("stone");
+  var crystalDiv = document.getElementById("crystal");
   var context = canvas.getContext("2d");
   var backgroundImage = new Image();
   backgroundImage.src = "images/full-background2.png";
@@ -35,6 +39,11 @@ MYGAME.screens['gameplay'] = (function (Game, Input) {
   iceTile.src = "images/Ardentryst-TilesAndObjects/Ardentryst-cavejl.png";
   var stoneTile = new Image();
   stoneTile.src = "images/Ardentryst-TilesAndObjects/Ardentryst-cstl_ground1.png";
+  var stoneInventory, dirtInventory, crystalInventory;
+
+  var towerImage = new Image();
+  towerImage.src = "images/catapult/turret.svg";
+  var createTowerButton;
 
   var mouseX, mouseY;
 
@@ -112,16 +121,6 @@ MYGAME.screens['gameplay'] = (function (Game, Input) {
       }
     );
 
-    ball = Bodies.circle(90, 280, 20, {
-      render: {
-        sprite: {
-          texture: "https://opengameart.org/sites/default/files/styles/medium/public/SoccerBall_0.png",
-          xScale: 0.4,
-          yScale: 0.4
-        }
-      }
-    });
-
     var background = Bodies.rectangle(0, canvas.height, backgroundImage.width, backgroundImage.height, {
       isStatic: true,
       collisionFilter: {mask: 2},
@@ -134,6 +133,47 @@ MYGAME.screens['gameplay'] = (function (Game, Input) {
       }
     });
 
+    createTowerButton = Bodies.rectangle(1000, 1200, towerImage.width, towerImage.height, {
+      isStatic: true,
+      collisionFilter: {mask: 2},
+      render: {
+        sprite: {
+          texture: towerImage.src,
+          xScale: 0.5,
+          yScale: 0.5,
+        }
+      }
+    })
+
+    dirtInventory = Bodies.rectangle(10, 10, 40, 40, {
+      isStatic: true,
+      collisionFilter: {mask: 2},
+      render: {
+        sprite: {
+          texture: dirtTile.src,
+        }
+      }
+    })
+
+    stoneInventory = Bodies.rectangle(50, 10, 40, 40, {
+      isStatic: true,
+      collisionFilter: {mask: 2},
+      render: {
+        sprite: {
+          texture: stoneTile.src,
+        }
+      }
+    })
+
+    crystalInventory = Bodies.rectangle(90, 10, 40, 40, {
+      isStatic: true,
+      collisionFilter: {mask: 2},
+      render: {
+        sprite: {
+          texture: iceTile.src,
+        }
+      }
+    })
 
       //determine if player is on the ground
     Events.on(engine, "collisionStart", function(event) {
@@ -151,13 +191,14 @@ MYGAME.screens['gameplay'] = (function (Game, Input) {
       character.numTouching = 0;
     });
 
-    World.add(engine.world, [background, ball]);
+    World.add(engine.world, [background, createTowerButton]);
     createCharacter();
     for ( var x = 0; x < tiles.length; x++ ) {
       for ( var y = 0; y < tiles[x].length; y++) {
         World.add(engine.world, [tiles[x][y]]);
       }
     }
+    World.add(engine.world, [dirtInventory, stoneInventory, crystalInventory]);
 
     Engine.run(engine);
     Render.run(render);
@@ -204,6 +245,22 @@ MYGAME.screens['gameplay'] = (function (Game, Input) {
 
     players.push(player);
     World.add(engine.world, [player]);
+  }
+
+  function createTower() {
+    tower = new TowerPrototype();
+    tower.canvas = canvas;
+
+    towerBody = Bodies.rectangle(tower.x, tower.y, tower.width, tower.height, {
+      isStatic:true,
+      render: {
+        sprite: {
+          texture: towerImage.src,
+        }
+      }
+    });
+
+    World.add(engine.world, [towerBody]);
   }
 
   function open() {
@@ -260,6 +317,10 @@ MYGAME.screens['gameplay'] = (function (Game, Input) {
       this.mouse.x = x;
       this.mouse.y = y;
     }
+
+    this.dirt = 0;
+    this.stone = 0;
+    this.crystal = 0;
 
     this.canvasX = canvas.width/2;
     this.canvasY = canvas.height/2;
@@ -477,6 +538,38 @@ MYGAME.screens['gameplay'] = (function (Game, Input) {
     };
   };
 
+  const TowerPrototype = function() {
+    this.x = 1000;
+    this.y = 1460;
+    this.width = 100;
+    this.height = 125;
+    this.radius = 20;
+    this.timer = 0;
+    this.ball = Bodies.circle(this.x+this.radius*2, this.y, this.radius, {
+      render: {
+        sprite: {
+          texture: "https://opengameart.org/sites/default/files/styles/medium/public/SoccerBall_0.png",
+          xScale: 0.4,
+          yScale: 0.4,
+        }
+      }
+    });
+
+    World.add(engine.world, [this.ball]);
+    Body.setPosition(this.ball, {x: this.x+this.width, y: this.y-50});
+    Body.applyForce(this.ball, {x: this.x, y:this.y}, {x: 0.11, y: -0.01});
+
+    this.update = function() {
+      this.timer += 0.01;
+
+      if(this.timer >= 2) {
+        Body.setPosition(this.ball, {x: this.x+this.width, y: this.y-50});
+        Body.applyForce(this.ball, {x: this.x, y:this.y}, {x: 0.11, y: -0.01});
+        this.timer = 0;
+      }
+    }
+  }
+
   function playerOnGroundCheck(event) { //runs on collisions events
     function enter() {
       character.numTouching++;
@@ -525,6 +618,15 @@ MYGAME.screens['gameplay'] = (function (Game, Input) {
     }
   }
 
+  function setInventoryPos() {
+    Body.setPosition(dirtInventory, {x: -200+character.x, y: -250+character.y});
+    Body.setPosition(stoneInventory, {x: 0+character.x, y: -250+character.y});
+    Body.setPosition(crystalInventory, {x: 200+character.x, y: -250+character.y});
+    dirtDiv.innerHTML = character.dirt;
+    stoneDiv.innerHTML = character.stone;
+    crystalDiv.innerHTML = character.crystal;
+  }
+
   function gameLoop() {
     /*
     game.timing();
@@ -533,6 +635,11 @@ MYGAME.screens['gameplay'] = (function (Game, Input) {
     */
 
     game.timing();
+
+    setInventoryPos();
+    if (tower != null) {
+      tower.update();
+    }
     character.keyMove();
 
     character.move();
@@ -557,11 +664,35 @@ MYGAME.screens['gameplay'] = (function (Game, Input) {
     if (character.mouse.x >= -100 && character.mouse.x <= 100 && character.mouse.y >= -100 && character.mouse.y <= 100) {
       for ( var x = 0; x < tiles.length; x++ ) {
         for ( var y = 0; y < tiles[x].length; y++ ) {
-          if ( mouseX >= tiles[x][y].position.x-20 && mouseX <= tiles[x][y].position.x + 45) {
-            if ( mouseY >= tiles[x][y].position.y-30 && mouseY <= tiles[x][y].position.y + 40) {
-              Composite.remove(engine.world, tiles[x][y]);
+          if (tiles[x][y] != null) {
+            if ( mouseX >= tiles[x][y].position.x-20 && mouseX <= tiles[x][y].position.x + 45) {
+              if ( mouseY >= tiles[x][y].position.y-30 && mouseY <= tiles[x][y].position.y + 40) {
+                if (tiles[x][y].render.sprite.texture == dirtTile.src || tiles[x][y].render.sprite.texture == grassDirtTile.src) {
+                  character.dirt++;
+                }
+                else if (tiles[x][y].render.sprite.texture == stoneTile.src) {
+                  character.stone++;
+                }
+                else if (tiles[x][y].render.sprite.texture == iceTile.src) {
+                  character.crystal++;
+                }
+                Composite.remove(engine.world, tiles[x][y]);
+                tiles[x][y] = null;
+              }
             }
           }
+        }
+      }
+    }
+
+    if (mouseX >= createTowerButton.position.x -100 && mouseX <= createTowerButton.position.x+100) {
+      if (mouseY >= createTowerButton.position.y - 100 && mouseY <= createTowerButton.position.y+100) {
+        if (character.dirt >= 20 && character.stone >= 10) {
+          createTower();
+          Composite.remove(engine.world, createTowerButton);
+          createTowerButton = null;
+          character.dirt -= 20;
+          character.stone -= 10;
         }
       }
     }

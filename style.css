@@ -9,3 +9,30 @@
 .screen.active {
 	display: block;
 }
+
+.dirt {
+	position: absolute;
+	color: white;
+	font-size: 30px;
+	top: 10%;
+	left: 26%;
+	line-height: 1;
+}
+
+.stone {
+	position: absolute;
+	color: white;
+	font-size: 30px;
+	top: 10%;
+	left: 36%;
+	line-height: 1;
+}
+
+.crystal {
+	position: absolute;
+	color: white;
+	font-size: 30px;
+	top: 10%;
+	left: 47%;
+	line-height: 1;
+}
