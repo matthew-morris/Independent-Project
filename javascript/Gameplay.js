@@ -21,14 +21,19 @@ MYGAME.screens['gameplay'] = (function (Game, Input) {
   var tower, towerBody;
   var player;
   var players = [];
+  var enemies = [];
+  var enemiesBody = [];
   var jumpSensor;
   var tiles = new Array();
 
   var canvas = document.getElementById("gameplayCanvas");
+  var backCanvas = document.getElementById("backdropCanvas")
   var dirtDiv = document.getElementById("dirt");
   var stoneDiv = document.getElementById("stone");
   var crystalDiv = document.getElementById("crystal");
   var context = canvas.getContext("2d");
+  var backContext = backCanvas.getContext("2d");
+  backContext.font = "30px Arial";
   var backgroundImage = new Image();
   backgroundImage.src = "images/full-background2.png";
   var grassDirtTile = new Image();
@@ -73,7 +78,7 @@ MYGAME.screens['gameplay'] = (function (Game, Input) {
       tiles[x] = new Array();
       for ( var y = 0; y < 100; y++ ){
         randomInt = Math.floor(Math.random() * 100);
-        if (randomInt < 90) {
+        if (randomInt < 85) {
           tempTile = dirtTile;
         }
         else if (randomInt < 99) {
@@ -145,6 +150,7 @@ MYGAME.screens['gameplay'] = (function (Game, Input) {
       }
     })
 
+/*
     dirtInventory = Bodies.rectangle(10, 10, 40, 40, {
       isStatic: true,
       collisionFilter: {mask: 2},
@@ -174,7 +180,7 @@ MYGAME.screens['gameplay'] = (function (Game, Input) {
         }
       }
     })
-
+*/
       //determine if player is on the ground
     Events.on(engine, "collisionStart", function(event) {
       playerOnGroundCheck(event);
@@ -198,7 +204,9 @@ MYGAME.screens['gameplay'] = (function (Game, Input) {
         World.add(engine.world, [tiles[x][y]]);
       }
     }
-    World.add(engine.world, [dirtInventory, stoneInventory, crystalInventory]);
+    //World.add(engine.world, [dirtInventory, stoneInventory, crystalInventory]);
+
+    createZombie();
 
     Engine.run(engine);
     Render.run(render);
@@ -245,6 +253,30 @@ MYGAME.screens['gameplay'] = (function (Game, Input) {
 
     players.push(player);
     World.add(engine.world, [player]);
+  }
+
+  function createZombie() {
+    var enemy = new enemyPrototype();
+    enemy.canvas = canvas;
+
+    var enemyBody = Bodies.rectangle(enemy.x, enemy.y, enemy.width, enemy.height, {
+      inertia: Infinity, //prevents player rotation
+      friction: 0.01,
+      //frictionStatic: 0.5,
+      restitution: 0.8,
+      sleepThreshold: Infinity,
+      render: {
+        sprite: {
+          texture: enemy.texture,
+          xScale: 0.3,
+          yScale: 0.3,
+        }
+      }
+    });
+
+    enemiesBody.push(enemyBody);
+    enemies.push(enemy);
+    World.add(engine.world, [enemyBody]);
   }
 
   function createTower() {
@@ -296,6 +328,27 @@ MYGAME.screens['gameplay'] = (function (Game, Input) {
   }
 
   const game = new gamePrototype();
+
+  const enemyPrototype = function() {
+    this.x = 1700;
+    this.y = 1300;
+    this.width = 80;
+    this.height = 110;
+    this.texture = "images/enemy/walk/go_1.png";
+    this.timer = 0;
+    this.jumpTimer = 0;
+
+    this.update = function(updatex, updatey) {
+      this.timer += 0.15;
+      this.jumpTimer += 1;
+      this.x = updatex;
+      this.y = updatey;
+      this.x -= 2;
+      if (this.timer >= 10) {
+        this.timer = 0;
+      }
+    }
+  }
 
   const CharacterPrototype = function() {
     this.width = 80;
@@ -619,12 +672,71 @@ MYGAME.screens['gameplay'] = (function (Game, Input) {
   }
 
   function setInventoryPos() {
+    /*
     Body.setPosition(dirtInventory, {x: -200+character.x, y: -250+character.y});
     Body.setPosition(stoneInventory, {x: 0+character.x, y: -250+character.y});
     Body.setPosition(crystalInventory, {x: 200+character.x, y: -250+character.y});
     dirtDiv.innerHTML = character.dirt;
     stoneDiv.innerHTML = character.stone;
     crystalDiv.innerHTML = character.crystal;
+    */
+    backContext.clearRect(0, 0, backCanvas.width, backCanvas.height);
+    backContext.drawImage(dirtTile, 450, 50);
+    backContext.strokeText(character.dirt, 510, 80);
+    backContext.drawImage(stoneTile, 650, 50);
+    backContext.strokeText(character.stone, 710, 80);
+    backContext.drawImage(iceTile, 850, 50);
+    backContext.strokeText(character.crystal, 910, 80);
+  }
+
+  function updateEnemies() {
+      for ( let x = 0; x < enemiesBody.length; x++ ) {
+        enemies[x].update(enemiesBody[x].position.x, enemiesBody[x].position.y);
+        if (enemies[x].jumpTimer > 200) {
+          Body.applyForce(enemiesBody[x], {x: 0, y: 1}, {x: 0, y: 0.5});
+          enemies[x].jumpTimer = 0;
+        }
+        Body.setPosition(enemiesBody[x], {x: enemies[x].x, y: enemies[x].y});
+        if (enemies[x].timer >= 0) {
+          enemiesBody[x].render.sprite.texture = "images/enemy/walk/go_1.png";
+        }
+        if (enemies[x].timer >= 1) {
+          enemiesBody[x].render.sprite.texture = "images/enemy/walk/go_2.png";
+        }
+        if (enemies[x].timer >= 2) {
+          enemiesBody[x].render.sprite.texture = "images/enemy/walk/go_3.png";
+        }
+        if (enemies[x].timer >= 3) {
+          enemiesBody[x].render.sprite.texture = "images/enemy/walk/go_4.png";
+        }
+        if (enemies[x].timer >= 4) {
+          enemiesBody[x].render.sprite.texture = "images/enemy/walk/go_5.png";
+        }
+        if (enemies[x].timer >= 5) {
+          enemiesBody[x].render.sprite.texture = "images/enemy/walk/go_6.png";
+        }
+        if (enemies[x].timer >= 6) {
+          enemiesBody[x].render.sprite.texture = "images/enemy/walk/go_7.png";
+        }
+        if (enemies[x].timer >= 7) {
+          enemiesBody[x].render.sprite.texture = "images/enemy/walk/go_8.png";
+        }
+        if (enemies[x].timer >= 8) {
+          enemiesBody[x].render.sprite.texture = "images/enemy/walk/go_9.png";
+        }
+        if (enemies[x].timer >= 9) {
+          enemiesBody[x].render.sprite.texture = "images/enemy/walk/go_10.png";
+        }
+      }
+  }
+
+  var spawnEnemyTimer = 0;
+  function spawnenemies() {
+    spawnEnemyTimer += 1;
+    if (spawnEnemyTimer > 500) {
+      createZombie();
+      spawnEnemyTimer = 0;
+    }
   }
 
   function gameLoop() {
@@ -641,7 +753,8 @@ MYGAME.screens['gameplay'] = (function (Game, Input) {
       tower.update();
     }
     character.keyMove();
-
+    updateEnemies();
+    spawnenemies();
     character.move();
     character.look();
     context.save();
@@ -685,14 +798,16 @@ MYGAME.screens['gameplay'] = (function (Game, Input) {
       }
     }
 
+    var dirtCost = 5;
+    var stoneCost = 1;
     if (mouseX >= createTowerButton.position.x -100 && mouseX <= createTowerButton.position.x+100) {
       if (mouseY >= createTowerButton.position.y - 100 && mouseY <= createTowerButton.position.y+100) {
-        if (character.dirt >= 20 && character.stone >= 10) {
+        if (character.dirt >= dirtCost && character.stone >= stoneCost) {
           createTower();
           Composite.remove(engine.world, createTowerButton);
           createTowerButton = null;
-          character.dirt -= 20;
-          character.stone -= 10;
+          character.dirt -= dirtCost;
+          character.stone -= stoneCost;
         }
       }
     }
