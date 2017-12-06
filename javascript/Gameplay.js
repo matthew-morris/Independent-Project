@@ -19,9 +19,11 @@ MYGAME.screens['gameplay'] = (function (Game, Input) {
   var character;
   var characterBody;
   var tower, towerBody;
+  var towers = [];
   var player;
   var players = [];
   var enemies = [];
+  var enemyBody;
   var enemiesBody = [];
   var jumpSensor;
   var tiles = new Array();
@@ -45,6 +47,9 @@ MYGAME.screens['gameplay'] = (function (Game, Input) {
   var stoneTile = new Image();
   stoneTile.src = "images/Ardentryst-TilesAndObjects/Ardentryst-cstl_ground1.png";
   var stoneInventory, dirtInventory, crystalInventory;
+  var stopLoop = false;
+  var originalEnemyId = [];
+  var towerCreateMode = false;
 
   var towerImage = new Image();
   towerImage.src = "images/catapult/turret.svg";
@@ -57,6 +62,8 @@ MYGAME.screens['gameplay'] = (function (Game, Input) {
   }
 
   function run() {
+    stopLoop = false;
+    originalEnemyId.length = 0;
     tiles[0] = new Array();
     var tempTile, randomInt;
     for ( var x = 0; x < 100; x++ ) {
@@ -138,49 +145,6 @@ MYGAME.screens['gameplay'] = (function (Game, Input) {
       }
     });
 
-    createTowerButton = Bodies.rectangle(1000, 1200, towerImage.width, towerImage.height, {
-      isStatic: true,
-      collisionFilter: {mask: 2},
-      render: {
-        sprite: {
-          texture: towerImage.src,
-          xScale: 0.5,
-          yScale: 0.5,
-        }
-      }
-    })
-
-/*
-    dirtInventory = Bodies.rectangle(10, 10, 40, 40, {
-      isStatic: true,
-      collisionFilter: {mask: 2},
-      render: {
-        sprite: {
-          texture: dirtTile.src,
-        }
-      }
-    })
-
-    stoneInventory = Bodies.rectangle(50, 10, 40, 40, {
-      isStatic: true,
-      collisionFilter: {mask: 2},
-      render: {
-        sprite: {
-          texture: stoneTile.src,
-        }
-      }
-    })
-
-    crystalInventory = Bodies.rectangle(90, 10, 40, 40, {
-      isStatic: true,
-      collisionFilter: {mask: 2},
-      render: {
-        sprite: {
-          texture: iceTile.src,
-        }
-      }
-    })
-*/
       //determine if player is on the ground
     Events.on(engine, "collisionStart", function(event) {
       playerOnGroundCheck(event);
@@ -197,8 +161,10 @@ MYGAME.screens['gameplay'] = (function (Game, Input) {
       character.numTouching = 0;
     });
 
-    World.add(engine.world, [background, createTowerButton]);
+    World.add(engine.world, [background]);
     createCharacter();
+    createTower(-1000, 1450);
+    //createZombie();
     for ( var x = 0; x < tiles.length; x++ ) {
       for ( var y = 0; y < tiles[x].length; y++) {
         World.add(engine.world, [tiles[x][y]]);
@@ -206,7 +172,38 @@ MYGAME.screens['gameplay'] = (function (Game, Input) {
     }
     //World.add(engine.world, [dirtInventory, stoneInventory, crystalInventory]);
 
-    createZombie();
+    Events.on(engine, "collisionStart", function(event) {
+      for ( let x = 0; x < event.pairs.length; x++ ) {
+        for ( let a = 0; a < enemiesBody.length; a++ ) {
+          if (event.pairs[x].bodyA.id == characterBody.id && event.pairs[x].bodyB.id == enemiesBody[a].id) {
+            towers.length = 0;
+            Render.stop(render);
+            World.clear(engine.world);
+            Engine.clear(engine);
+            stopLoop = true;
+            MYGAME.Game.showScreen("menu");
+          }
+          else if (event.pairs[x].bodyA.id == enemiesBody[a].id && event.pairs[x].bodyB.id == characterBody.id) {
+            towers.length = 0;
+            Render.stop(render);
+            World.clear(engine.world);
+            Engine.clear(engine);
+            stopLoop = true;
+            MYGAME.Game.showScreen("menu");
+          }
+          for ( let b = 0; b < towers.length; b++ ) {
+            if (event.pairs[x].bodyA.id == towers[b].ball.id && event.pairs[x].bodyB.id == enemiesBody[a].id) {
+              Body.setPosition(towers[b].ball, {x: 50000, y: 50000});
+              Composite.remove(engine.world, enemiesBody[a]);
+            }
+            else if (event.pairs[x].bodyA.id == enemiesBody[a].id && event.pairs[x].bodyB.id == towers[b].ball.id) {
+              Body.setPosition(towers[b].ball, {x: 50000, y: 50000});
+              Composite.remove(engine.world, enemiesBody[a]);
+            }
+          }
+        }
+      }
+    });
 
     Engine.run(engine);
     Render.run(render);
@@ -259,7 +256,7 @@ MYGAME.screens['gameplay'] = (function (Game, Input) {
     var enemy = new enemyPrototype();
     enemy.canvas = canvas;
 
-    var enemyBody = Bodies.rectangle(enemy.x, enemy.y, enemy.width, enemy.height, {
+    enemyBody = Bodies.rectangle(enemy.x, enemy.y, enemy.width, enemy.height, {
       inertia: Infinity, //prevents player rotation
       friction: 0.01,
       //frictionStatic: 0.5,
@@ -274,13 +271,15 @@ MYGAME.screens['gameplay'] = (function (Game, Input) {
       }
     });
 
+    //originalEnemyId.push(enemyBody.id);
+
     enemiesBody.push(enemyBody);
     enemies.push(enemy);
     World.add(engine.world, [enemyBody]);
   }
 
-  function createTower() {
-    tower = new TowerPrototype();
+  function createTower(x, y) {
+    tower = new TowerPrototype(x, y);
     tower.canvas = canvas;
 
     towerBody = Bodies.rectangle(tower.x, tower.y, tower.width, tower.height, {
@@ -292,6 +291,7 @@ MYGAME.screens['gameplay'] = (function (Game, Input) {
       }
     });
 
+    towers.push(tower);
     World.add(engine.world, [towerBody]);
   }
 
@@ -591,9 +591,9 @@ MYGAME.screens['gameplay'] = (function (Game, Input) {
     };
   };
 
-  const TowerPrototype = function() {
-    this.x = 1000;
-    this.y = 1460;
+  const TowerPrototype = function(x, y) {
+    this.x = x;
+    this.y = y;
     this.width = 100;
     this.height = 125;
     this.radius = 20;
@@ -616,7 +616,9 @@ MYGAME.screens['gameplay'] = (function (Game, Input) {
       this.timer += 0.01;
 
       if(this.timer >= 2) {
-        Body.setPosition(this.ball, {x: this.x+this.width, y: this.y-50});
+        Composite.remove(engine.world, this.ball);
+        World.add(engine.world, [this.ball]);
+        Body.setPosition(this.ball, {x: this.x+this.width+5, y: this.y-50});
         Body.applyForce(this.ball, {x: this.x, y:this.y}, {x: 0.11, y: -0.01});
         this.timer = 0;
       }
@@ -687,6 +689,7 @@ MYGAME.screens['gameplay'] = (function (Game, Input) {
     backContext.strokeText(character.stone, 710, 80);
     backContext.drawImage(iceTile, 850, 50);
     backContext.strokeText(character.crystal, 910, 80);
+    backContext.drawImage(towerImage, 250, 50, towerImage.width * 0.5, towerImage.height * 0.5);
   }
 
   function updateEnemies() {
@@ -731,10 +734,12 @@ MYGAME.screens['gameplay'] = (function (Game, Input) {
   }
 
   var spawnEnemyTimer = 0;
+  var maxSpawnTimer = 50;
   function spawnenemies() {
     spawnEnemyTimer += 1;
-    if (spawnEnemyTimer > 500) {
+    if (spawnEnemyTimer > maxSpawnTimer) {
       createZombie();
+      //maxSpawnTimer -= 1;
       spawnEnemyTimer = 0;
     }
   }
@@ -749,8 +754,10 @@ MYGAME.screens['gameplay'] = (function (Game, Input) {
     game.timing();
 
     setInventoryPos();
-    if (tower != null) {
-      tower.update();
+    if (towers.length != 0) {
+      for ( let x = 0; x < towers.length; x++ ) {
+        towers[x].update();
+      }
     }
     character.keyMove();
     updateEnemies();
@@ -762,7 +769,9 @@ MYGAME.screens['gameplay'] = (function (Game, Input) {
     character.draw();
     context.restore();
 
-    requestAnimationFrame(gameLoop);
+    if (stopLoop == false) {
+      requestAnimationFrame(gameLoop);
+    }
   }
 
   window.onmousemove = function(e) {
@@ -798,14 +807,17 @@ MYGAME.screens['gameplay'] = (function (Game, Input) {
       }
     }
 
+    if(towerCreateMode) {
+      createTower(mouseX, mouseY);
+      towerCreateMode = false;
+    }
+
     var dirtCost = 5;
     var stoneCost = 1;
-    if (mouseX >= createTowerButton.position.x -100 && mouseX <= createTowerButton.position.x+100) {
-      if (mouseY >= createTowerButton.position.y - 100 && mouseY <= createTowerButton.position.y+100) {
+    if (character.mouse.x <= -345 && character.mouse.x >= -390) {
+      if (character.mouse.y <= -275 && character.mouse.y >= -350) {
         if (character.dirt >= dirtCost && character.stone >= stoneCost) {
-          createTower();
-          Composite.remove(engine.world, createTowerButton);
-          createTowerButton = null;
+          towerCreateMode = true;
           character.dirt -= dirtCost;
           character.stone -= stoneCost;
         }
